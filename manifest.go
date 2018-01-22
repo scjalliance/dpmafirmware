@@ -1,6 +1,7 @@
 package dpmafirmware
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"sort"
@@ -11,6 +12,23 @@ import (
 type Manifest struct {
 	Origin
 	Releases ReleaseSet // Most recent first
+}
+
+// Summary returns a multiline string summarizing the contents of the
+// manifest.
+func (m *Manifest) Summary() string {
+	var buffer bytes.Buffer
+
+	// Print the results for now
+	buffer.WriteString(fmt.Sprintf("Origin: %s\n", m.Origin.String()))
+
+	for _, branch := range m.Releases.Branches() {
+		buffer.WriteString(fmt.Sprintf("Branch %s:\n", branch.Name))
+		for r := range branch.Releases {
+			buffer.WriteString(fmt.Sprintf("  %v\n", branch.Releases[r]))
+		}
+	}
+	return buffer.String()
 }
 
 // MarshalJSON marshals the manifest as JSON-encoded data.
