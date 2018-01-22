@@ -15,4 +15,8 @@ func (v Version) Branch() string {
 	return ""
 }
 
+func (v Version) String() string {
+	return string(v)
+}
+
 // TODO: Add glob or regex matching function
