@@ -1,6 +1,8 @@
 package dpmafirmware
 
 import (
+	"fmt"
+	"net/http"
 	"net/url"
 	"strings"
 )
@@ -24,6 +26,27 @@ func (r *Release) Branch() string {
 func (r *Release) URL(o *Origin) *url.URL {
 	t, _ := url.Parse(strings.Replace(o.Tarball, VersionPlaceholder, r.Version.String(), -1))
 	return o.Base.ResolveReference(t)
+}
+
+// Get attempts to download the firmware from the given origin.
+func (r *Release) Get(o *Origin) (reader *Reader, err error) {
+	res, err := http.Get(r.URL(o).String())
+	if err != nil {
+		return nil, err
+	}
+	if res.StatusCode != 200 {
+		res.Body.Close()
+		return nil, fmt.Errorf("expected http status code 200, got %d", res.StatusCode)
+	}
+
+	reader, err = NewReader(res.Body)
+	if err != nil {
+		res.Body.Close()
+		return
+	}
+
+	reader.stream = res.Body // Make sure reader closes the body when finished
+	return
 }
 
 func (r *Release) marshalRawJSON(raw map[string]interface{}) {
