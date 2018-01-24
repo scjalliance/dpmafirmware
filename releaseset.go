@@ -5,11 +5,23 @@ const startingBranchCap = 32
 // ReleaseSet is a set of releases.
 type ReleaseSet []Release
 
-// Filter returns the release subset applicable to models.
-func (rs ReleaseSet) Filter(models ...string) (filtered ReleaseSet) {
+// Include returns the release subset applicable to models.
+func (rs ReleaseSet) Include(models ...string) (filtered ReleaseSet) {
 	wanted := ModelSet(models).Map()
 	for i := range rs {
 		if !wanted.Contains(rs[i].Models...) {
+			continue
+		}
+		filtered = append(filtered, rs[i])
+	}
+	return
+}
+
+// IncludeMatch returns the subset of releases applying to models that match
+// the given matcher.
+func (rs ReleaseSet) IncludeMatch(matcher Matcher) (filtered ReleaseSet) {
+	for i := range rs {
+		if !rs[i].Models.Match(matcher) {
 			continue
 		}
 		filtered = append(filtered, rs[i])

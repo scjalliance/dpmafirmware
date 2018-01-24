@@ -54,6 +54,16 @@ func (ms ModelSet) Wildcard() bool {
 	return false
 }
 
+// Match returns true if any model within the set matches the given matcher.
+func (ms ModelSet) Match(matcher Matcher) bool {
+	for _, model := range ms {
+		if matcher.Match(model) {
+			return true
+		}
+	}
+	return false
+}
+
 // Map returns a map of models present in the model set.
 func (ms ModelSet) Map() (mm ModelMap) {
 	mm = make(ModelMap, len(ms))
