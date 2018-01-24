@@ -5,6 +5,18 @@ const startingBranchCap = 32
 // ReleaseSet is a set of releases.
 type ReleaseSet []Release
 
+// Filter returns the release subset applicable to models.
+func (rs ReleaseSet) Filter(models ...string) (filtered ReleaseSet) {
+	wanted := ModelSet(models).Map()
+	for i := range rs {
+		if !wanted.Contains(rs[i].Models...) {
+			continue
+		}
+		filtered = append(filtered, rs[i])
+	}
+	return
+}
+
 // Branches returns the release set with all releases grouped by branch.
 func (rs ReleaseSet) Branches() (branches []Branch) {
 	seen := make(map[string]int) // Maps branch names to indices within branches

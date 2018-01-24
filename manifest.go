@@ -14,6 +14,14 @@ type Manifest struct {
 	Releases ReleaseSet // Most recent first
 }
 
+// Filter returns a new manifest its releases filtered for the given models.
+func (m *Manifest) Filter(models ...string) (filtered Manifest) {
+	return Manifest{
+		Origin:   m.Origin,
+		Releases: m.Releases.Filter(models...),
+	}
+}
+
 // Summary returns a multiline string summarizing the contents of the
 // manifest.
 func (m *Manifest) Summary() string {
