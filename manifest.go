@@ -14,21 +14,11 @@ type Manifest struct {
 	Releases ReleaseSet // Most recent first
 }
 
-// Include returns a new manifest with its releases filtered for the given
-// models.
-func (m *Manifest) Include(models ...string) (filtered Manifest) {
+// Filter returns a new manifest with its releases filtered by f.
+func (m *Manifest) Filter(f Filter) (filtered Manifest) {
 	return Manifest{
 		Origin:   m.Origin,
-		Releases: m.Releases.Include(models...),
-	}
-}
-
-// IncludeMatch returns a new manifest with its releases filtered for the given
-// models.
-func (m *Manifest) IncludeMatch(matcher Matcher) (filtered Manifest) {
-	return Manifest{
-		Origin:   m.Origin,
-		Releases: m.Releases.IncludeMatch(matcher),
+		Releases: m.Releases.Filter(f),
 	}
 }
 
