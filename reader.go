@@ -8,16 +8,23 @@ import (
 	"fmt"
 	"hash"
 	"io"
+	"path/filepath"
+	"regexp"
 )
+
+// ModelMatcher is the regular expression used to match models within filenames.
+// Matching subgroups will contain the model number.
+const ModelMatcher = `(?:_|\b)([dD][0-9]{2,})(?:_|\b)`
 
 // Reader reads firmware file data stored in a dpma firmware package.
 type Reader struct {
 	stream  io.Closer // Used by Release.Get to close the underlying response body
 	gzip    *gzip.Reader
 	tar     *tar.Reader
-	md5     hash.Hash // MD5 hasher
-	header0 *Header   // First regular file entry in the tar archive
-	started bool      // Have we ready the first entry?
+	md5     hash.Hash      // MD5 hasher
+	header0 *Header        // First regular file entry in the tar archive
+	started bool           // Have we ready the first entry?
+	matcher *regexp.Regexp // Matches models within file names
 }
 
 // NewReader returns a firmware package reader for the data stream r.
@@ -28,6 +35,11 @@ type Reader struct {
 // It is possible for some portion of r to be consumed even when an error is
 // returned by NewReader.
 func NewReader(r io.Reader) (reader *Reader, err error) {
+	matcher, err := regexp.Compile(ModelMatcher)
+	if err != nil {
+		return nil, fmt.Errorf("bad filename model matching expression: %v", err)
+	}
+
 	// Tee off a copy of everything we read to an MD5 hash
 	md5Hash := md5.New()
 	teeReader := io.TeeReader(r, md5Hash)
@@ -43,9 +55,10 @@ func NewReader(r io.Reader) (reader *Reader, err error) {
 
 	// Prepare the reader
 	reader = &Reader{
-		gzip: gzipReader,
-		tar:  tarReader,
-		md5:  md5Hash,
+		gzip:    gzipReader,
+		tar:     tarReader,
+		md5:     md5Hash,
+		matcher: matcher,
 	}
 
 	// Read the first entry to make sure everything works
@@ -80,12 +93,19 @@ func (r *Reader) next() (header *Header, err error) {
 			return nil, err
 		}
 
+		var models ModelSet
+		for _, match := range r.matcher.FindAllStringSubmatch(header.Name, -1) {
+			models = append(models, match[1])
+		}
+
 		switch header.Typeflag {
 		case tar.TypeReg:
 			return &Header{
-				Name:    header.Name,
+				Name:    filepath.Base(header.Name),
+				Path:    filepath.Clean(header.Name),
 				Size:    header.Size,
 				ModTime: header.ModTime,
+				Models:  models,
 			}, nil
 		}
 	}
