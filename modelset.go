@@ -64,6 +64,26 @@ func (ms ModelSet) Match(matcher Matcher) bool {
 	return false
 }
 
+// Include returns the subset of matching models.
+func (ms ModelSet) Include(matcher Matcher) (filtered ModelSet) {
+	for _, model := range ms {
+		if matcher.Match(model) {
+			filtered = append(filtered, model)
+		}
+	}
+	return filtered
+}
+
+// Exclude returns the subset of non-matching models.
+func (ms ModelSet) Exclude(matcher Matcher) (filtered ModelSet) {
+	for _, model := range ms {
+		if !matcher.Match(model) {
+			filtered = append(filtered, model)
+		}
+	}
+	return filtered
+}
+
 // Map returns a map of models present in the model set.
 func (ms ModelSet) Map() (mm ModelMap) {
 	mm = make(ModelMap, len(ms))
