@@ -1,6 +1,7 @@
 package dpmafirmware
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -30,22 +31,33 @@ func (r *Release) URL(o *Origin) *url.URL {
 
 // Get attempts to download the firmware from the given origin.
 func (r *Release) Get(o *Origin) (reader *Reader, err error) {
-	res, err := http.Get(r.URL(o).String())
+	req, err := http.NewRequest("GET", r.URL(o).String(), nil)
 	if err != nil {
+		return nil, fmt.Errorf("unable to prepare HTTP request: %v", err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	req = req.WithContext(ctx)
+
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		cancel()
 		return nil, err
 	}
 	if res.StatusCode != 200 {
+		cancel()
 		res.Body.Close()
 		return nil, fmt.Errorf("expected http status code 200, got %d", res.StatusCode)
 	}
 
 	reader, err = NewReader(res.Body)
 	if err != nil {
+		cancel()
 		res.Body.Close()
 		return
 	}
 
 	reader.stream = res.Body // Make sure reader closes the body when finished
+	reader.cancel = cancel   // Allow the reader to cancel the request
 	return
 }
 
